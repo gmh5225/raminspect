@@ -4,7 +4,7 @@ A library that allows for the arbitrary reading and writing of any processes' me
 
 ## Demonstration of Functionality
 
-![cut_video](https://github.com/PhilosophicalProgrammer/raminspect/assets/79514573/328225d8-4714-4250-944a-ffd7eae93826)
+![cut_video](https://github.com/PhilosophicalProgrammer/raminspect/assets/79514573/7b4fa46b-5bc9-46e5-b969-cc72e23d5008)
 
 ## Important Notice
 
