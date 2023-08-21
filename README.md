@@ -26,15 +26,12 @@ Before you can start using this crate, you should have the latest version of the
 
 `sudo dnf install kernel-headers`
 
-Once you do this, you need to build and insert the required kernel module. To do so you can run these commands as root:
+Once you do this, you need to build and insert the required kernel module. To do so, first clone the repository using `git clone`, and then run these commands as root in the output directory:
 
 ```bash
-git clone https://github.com/PhilosophicalProgrammer/raminspect
-cd raminspect/kern_module
 make all
 insmod raminspect.ko
 ```
-
 
 ### A Note about Huge Pages
 
