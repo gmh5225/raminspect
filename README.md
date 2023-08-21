@@ -35,7 +35,7 @@ make all
 insmod raminspect.ko
 ```
 
-Note that as of right now the huge page handling code in the kernel module does not work properly, and so you should run these commands as well:
+Note that as of right now the huge page handling code in the kernel module does not work properly, and so you should run these commands as well to temporarily disable huge pages:
 
 ```bash
 sudo bash -c "echo never > /sys/kernel/mm/transparent_hugepage/enabled"
