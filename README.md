@@ -12,7 +12,7 @@ This project is in what could be called a pre-alpha state, and so the installati
 
 ## Getting Started
 
-Before you can start using this crate, you should also have the latest version of the mainline Linux kernel (if you don't have a custom kernel you can get this by just doing a system update on most distros) and your distros' corresponding linux-headers package installed. Here's how to install the Linux kernel headers on different distros:
+Before you can start using this crate, you should have the latest version of the mainline Linux kernel (if you don't have a custom kernel you can get this by just doing a system update on most distros) and your distros' corresponding linux-headers package installed. Here's how to install the Linux kernel headers on different distros:
 
 ### Arch Linux / Manjaro Linux
 
