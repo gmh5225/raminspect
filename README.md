@@ -35,4 +35,18 @@ make all
 insmod raminspect.ko
 ```
 
-After you do this you should be able to run the `firefox_search` example if you have Firefox installed. To do so, start by opening an instance of Firefox and typing "Old search text" in the search bar. If all goes well, when you run the example as root using the command `sudo cargo run --example firefox_search --release`, it should be replaced with "New search text", although you will probably have to click on the search bar again in order for it to render the new text.
+Note that as of right now the huge page handling code in the kernel module does not work properly, and so you should run these commands as well:
+
+```bash
+sudo bash -c "echo never > /sys/kernel/mm/transparent_hugepage/enabled"
+sudo bash -c "echo never > /sys/kernel/mm/transparent_hugepage/defrag"
+```
+
+This causes a slight performance penalty for the system, so you should either reboot to re-enable it later or run these commands after you're done using this:
+
+```bash
+sudo bash -c "echo always > /sys/kernel/mm/transparent_hugepage/enabled"
+sudo bash -c "echo always > /sys/kernel/mm/transparent_hugepage/defrag"
+```
+
+After you do all this you should be able to run the `firefox_search` example if you have Firefox installed. To do so, start by opening an instance of Firefox and typing "Old search text" in the search bar. If all goes well, when you run the example as root using the command `sudo cargo run --example firefox_search --release`, it should be replaced with "New search text", although you will probably have to click on the search bar again in order for it to render the new text.
