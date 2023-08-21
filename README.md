@@ -1,6 +1,6 @@
 # raminspect
 
-A library that allows for the arbitrary reading and writing of any processes' memory on a Linux system (this could be useful for hacking, for example). Root privileges are required, for obvious reasons. You can find the documentation on [docs.rs](https://docs.rs/raminspect/latest/raminspect).
+A crate that allows for the arbitrary reading and writing of any processes' memory on a Linux system, using a kernel module as its backend (this could be useful for hacking, for example). Root privileges are required, for obvious reasons. You can find the documentation on [docs.rs](https://docs.rs/raminspect/latest/raminspect).
 
 ## Demonstration of Functionality
 
