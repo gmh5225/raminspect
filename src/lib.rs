@@ -219,15 +219,7 @@ impl RamInspector {
             }
                 
             for i in 0..region.len() - search_term.len() {
-                let mut found_at_index = true;
-                for j in 0..search_term.len() {
-                    if region[i + j] != search_term[j] {
-                        found_at_index = false;
-                        break;
-                    }
-                }
-
-                if found_at_index {
+                if region[i..].starts_with(search_term) {
                     out.push(start_addr + i as u64);
                 }
             }
