@@ -1,6 +1,6 @@
 [package]
 name = "raminspect"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 license = "GPL-3.0"
@@ -9,4 +9,4 @@ repository = "https://github.com/PhilosophicalProgrammer/raminspect"
 description = "Allows for the reading and writing of an arbitrary processes' memory on Linux systems."
 
 [dependencies]
-nix = { version = "0.26.2", features = ["ioctl"] }
+nix = { version = "0.26.2" }
