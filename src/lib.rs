@@ -57,7 +57,7 @@ pub fn find_processes(name_contains: &str) -> Vec<i32> {
 ///             for proc_addr in inspector.search_for_term(b"Old search text").unwrap() {
 ///                 unsafe {
 ///                     // This is safe because modifying the text in the Firefox search bar will not crash
-///                    // the browser or negatively impact system stability in any way.
+///                     // the browser or negatively impact system stability in any way.
 ///                     inspector.write_to_address(proc_addr, b"New search text").unwrap();
 ///                 }
 ///             }
