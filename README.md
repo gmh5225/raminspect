@@ -1,5 +1,7 @@
 # raminspect
 
+note: The documentation for 0.2.0 is in the process of building. In the meantime you can do a git clone and run cargo doc --open to view the latest docs.
+
 A crate that allows for finding and replacing arbitrary memory in an arbitrary process on a Linux system (this could be useful for hacking, for example). You can find the documentation on [docs.rs](https://docs.rs/raminspect/latest/raminspect).
 
 ## Demonstration of Functionality
