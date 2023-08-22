@@ -2,7 +2,7 @@
 
 A crate that allows for finding and replacing arbitrary memory in an arbitrary process on a Linux system (this could be useful for hacking, for example). You can find the documentation on [docs.rs](https://docs.rs/raminspect/latest/raminspect).
 
-Note that this project is not yet in a stable state; expect breaking changes and bugs. If you find a bug in the crate or any of the example don't work on your machine please don't hesitate to file an issue so it can be fixed as soon as posssible.
+Note that this project is not yet in a stable state; expect breaking changes and bugs. If you find a bug in the crate or any of the examples don't work on your machine please don't hesitate to file an issue so it can be fixed as soon as posssible.
 
 ## Demonstration of Functionality
 
