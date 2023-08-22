@@ -1,23 +1,14 @@
 //! A library used to find and replace arbitrary data in an arbitrary
-//! processes memory on Linux systems. Root privileges are required, for 
-//! obvious reasons, and the core kernel module has to be built and installed
-//! by following the instructions detailed on the GitHub page before this can be used.
-//! 
-//! # Note
-//! 
-//! As of right now this only works on x86-64 Linux, although I might add support for 
-//! more CPU architectures in the future (for example ARM), and contributions are welcome.
+//! processes memory on Linux systems. You must run your program as
+//! root in order for this crate to function, and 
 
-mod ffi;
-use ffi::DataReadOrWrite;
-use ffi::InspectorRequest;
+use std::fs::File;
+use std::fs::OpenOptions;
 
-use ffi::SearchOperation;
-use core::marker::PhantomData;
+use std::io::SeekFrom;
+use std::io::prelude::*;
 
-mod ioctl;
 use nix::unistd::Pid;
-use nix::errno::Errno;
 use nix::sys::signal::kill;
 use nix::sys::signal::SIGSTOP;
 use nix::sys::signal::SIGCONT;
@@ -41,11 +32,12 @@ pub fn find_processes(name_contains: &str) -> Vec<i32> {
     results
 }
 
-use std::fs::File;
-/// This is the primary interface used by this library to communicate with
-/// the backend kernel module. You can queue arbitrary reads and writes to
-/// an arbitrary processes' memory using this structure, and execute them
-/// all in a batch by using the flush method.
+/// This is the primary interface used by the crate to search through, read, and modify an
+/// arbitrary processes' memory. 
+/// 
+/// Note that when an inspector is created for a process, the process will be paused until
+/// the inspector is dropped, in order to ensure that we have exclusive access to the
+/// processes' memory.
 /// 
 /// # Example Usage
 /// 
@@ -61,184 +53,196 @@ use std::fs::File;
 ///     use raminspect::RamInspector;
 ///     // Iterate over all running Firefox instances
 ///     for pid in raminspect::find_processes("/usr/lib/firefox/firefox") {
-///         let mut inspector = RamInspector::new(pid).unwrap();
-///         for proc_addr in inspector.search_for_term(b"Old search text").unwrap().to_vec() {
-///             unsafe {
-///                 // This is safe because modifying the text in the Firefox search bar will not crash
-///                 // the browser or negatively impact system stability in any way.
-///                 inspector.queue_write(proc_addr, b"New search text");
+///         if let Ok(mut inspector) = RamInspector::new(pid) {
+///             for proc_addr in inspector.search_for_term(b"Old search text").unwrap() {
+///                 unsafe {
+///                     // This is safe because modifying the text in the Firefox search bar will not crash
+///                    // the browser or negatively impact system stability in any way.
+///                     inspector.write_to_address(proc_addr, b"New search text").unwrap();
+///                 }
 ///             }
 ///         }
-/// 
-///         inspector.flush().unwrap();
 ///     }
 /// }
 /// ```
 
-pub struct RamInspector<'a> {
+pub struct RamInspector {
     pid: i32,
-    device_fd: i32,
-    _device_file: File,
-    phdata: PhantomData<&'a ()>,
-
-    process_paused: bool,
-    max_search_results: usize,
-    search_results_buffer: Vec<u64>,
-    queued_reads_and_writes: Vec<DataReadOrWrite>,
+    proc_mem_file: File,
+    proc_maps_file: File,
 }
 
-impl<'a> RamInspector<'a> {
-    /// Creates a new [RamInspector] attached to the specified process ID with a default value
-    /// of 100 maximum search results returnable by [RamInspector::search_for_term]. The maximum
-    /// can be changed through the [RamInspector::set_max_search_results] method.
+#[non_exhaustive]
+/// The error type for this library. The variants have self-explanatory names.
+
+pub enum RamInspectError {
+    FailedToOpenProcMem,
+    FailedToOpenProcMaps,
+    FailedToPauseProcess,
+
+    FailedToReadMem,
+    FailedToWriteMem,
+    FailedToReadProcMaps,
+}
+
+use std::fmt;
+use std::fmt::Debug;
+use std::fmt::Formatter;
+impl Debug for RamInspectError {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        formatter.write_str(match self {
+            RamInspectError::FailedToOpenProcMaps => "Failed to access the target processes' memory maps! Are you sure you're running as root? If you are, is the target process running?",
+            RamInspectError::FailedToOpenProcMem => "Failed to open the target processes' memory file! Are you sure you're running as root? If you are, is the target process running?",
+            RamInspectError::FailedToWriteMem => "Failed to write to the specified memory address! Are you sure you used an address derived from a search result?",
+            RamInspectError::FailedToReadMem => "Failed to read from the specified memory address! Are you sure you used an address derived from a search result?",
+            RamInspectError::FailedToReadProcMaps => "Failed to read the process memory maps file! This most likely means that the target process terminated.",
+            RamInspectError::FailedToPauseProcess => "Failed to pause the target process! Are you sure it is currently running?",
+        })
+    }
+}
+
+impl RamInspector {
+    /// Creates a new inspector attached to the specified process ID. This will pause the target process until
+    /// the inspector is dropped.
     
-    pub fn new(pid: i32) -> Result<Self, String> {
-        use std::fs::OpenOptions;
-        use std::os::fd::AsRawFd;
-        let max_search_results = 100;
+    pub fn new(pid: i32) -> Result<Self, RamInspectError> {
+        let proc_mem_file = OpenOptions::new().read(true).write(true).open(&format!("/proc/{}/mem", pid)).map_err(|_| {
+            RamInspectError::FailedToOpenProcMem
+        })?;
 
-        let device_file = OpenOptions::new()
-            .read(true)
-            .open("/dev/raminspect")
-            .map_err(|_| "Failed to open raminspect device file! Are you sure you're running with root privileges? If you are, is the kernel module loaded?")?;
+        let proc_maps_file = OpenOptions::new().read(true).write(true).open(&format!("/proc/{}/maps", pid)).map_err(|_| {
+            RamInspectError::FailedToOpenProcMaps
+        })?;
 
-        let device_fd = device_file.as_raw_fd();
+        // Pause the target process with a SIGSTOP signal
+        kill(Pid::from_raw(pid), SIGSTOP).map_err(|_| RamInspectError::FailedToPauseProcess)?;
 
         Ok(RamInspector {
             pid,
-            device_fd,
-            max_search_results,
-            phdata: PhantomData,
-            process_paused: false,
-            _device_file: device_file,
-            queued_reads_and_writes: Vec::new(),
-            search_results_buffer: vec![0; max_search_results],
+            proc_mem_file,
+            proc_maps_file,
         })
     }
 
-    /// Searches the target applications' memory for the given search term.
-    /// The maximum number of results returned can be controlled using the
-    /// [RamInspector::max_search_results] and [RamInspector::set_max_search_results] methods.
-    /// 
-    /// This fails if the ioctl call sent to the kernel module fails, and the error code
-    /// is returned if it fails.
+    /// Fills the output buffer with memory read starting from the target address. This can fail
+    /// if the target process was suddenly terminated or if the address used was not obtained
+    /// from one of the searching functions called on this inspector.
     
-    pub fn search_for_term(&mut self, search_term: &[u8]) -> Result<&[u64], Errno> {
-        unsafe {
-            let mut search_operation = SearchOperation {
-                results_found: 0,
-                process_id: self.pid,
-                search_term: search_term.as_ptr(),
-                contiguous_page_data: core::ptr::null(),
-                search_term_len: search_term.len() as u64,
-                results: self.search_results_buffer.as_mut_ptr(),
-                max_search_results: self.max_search_results as u64,
-            };
-
-            ioctl::conduct_search(self.device_fd, &mut search_operation)?;
-            Ok(&self.search_results_buffer[..search_operation.results_found as usize])
-        }
-    }
-
-    /// Gets the current max search results that can be returned from
-    /// a call to [RamInspector::search_for_term].
-    
-    pub fn max_search_results(&self) -> usize {
-        self.max_search_results
-    }
-
-    /// Changes the maximum search results that can be returned from a 
-    /// call to [RamInspector::search_for_term].
-    
-    pub fn set_max_search_results(&mut self, max_results: usize) {
-        self.max_search_results = max_results;
-        self.search_results_buffer = vec![0; max_results];
-    }
-
-    /// Queues a data read of the application's memory. This is unsafe because 
-    /// reading from a memory-mapped I/O area could cause unexpected behavior,
-    /// and the caller must therefore ensure that the memory being read does
-    /// not belong to such an area or that if it does the effects of doing
-    /// so are well-defined and not dangerous for the system. Note that
-    /// this has no effect until [RamInspector::flush] is called.
-    
-    pub unsafe fn queue_read(&mut self, proc_addr: u64, out_buf: &'a mut [u8]) {
-        self.queued_reads_and_writes.push(DataReadOrWrite {
-            direction: 0,
-            procmem_ptr: proc_addr,
-            caller_mem: out_buf.as_mut_ptr(),
-            caller_mem_len: out_buf.len() as u64,
-        });
-    }
-
-    /// Queues a data write to an arbitrary location in the applications'
-    /// memory. This is unsafe since it could cause the target process to
-    /// crash or otherwise corrupt it's state. 
-    /// 
-    /// The caller must either ensure that writing to the specified memory 
-    /// location will not result in a corruption of the target applications'
-    /// state or accept the risk of crashing the target application. The 
-    /// caller should also ensure that the target memory area does not
-    /// belong to some MMIO area, or that if it does the effects of
-    /// writing the specified data to it are well-defined and not
-    /// dangerous for the stability of the system.
-    /// 
-    /// Like [RamInspector::queue_read], this does not have any effect
-    /// until [RamInspector::flush] is called. See the documentation of
-    /// that function for more information.
-    
-    pub unsafe fn queue_write(&mut self, proc_addr: u64, data: &'a [u8]) {
-        self.queued_reads_and_writes.push(DataReadOrWrite {
-            direction: 1,
-            procmem_ptr: proc_addr,
-            caller_mem_len: data.len() as u64,
-            caller_mem: data.as_ptr() as *mut u8,
-        });
-    }
-
-    /// Executes all of the queued reads and writes and clears the queues
-    /// after it finishes. Providing that the safety requirements for the 
-    /// queue read and queue write functions were upheld for each call
-    /// calling this should be safe.
-    
-    pub fn flush(&mut self) -> Result<(), Errno> {
-        unsafe {
-            ioctl::send_inspector_request(self.device_fd, &InspectorRequest {
-                target_process_id: self.pid,
-                reads_and_writes: self.queued_reads_and_writes.as_ptr(),
-                reads_and_writes_len: self.queued_reads_and_writes.len() as u64,
-            })?;
-        }
-
-        self.queued_reads_and_writes.clear();
+    pub fn read_address(&mut self, addr: u64, out_buf: &mut [u8]) -> Result<(), RamInspectError> {
+        self.proc_mem_file.seek(SeekFrom::Start(addr)).map_err(|_| RamInspectError::FailedToReadMem)?;
+        self.proc_mem_file.read_exact(out_buf).map_err(|_| RamInspectError::FailedToReadMem)?;
         Ok(())
     }
 
-    /// Sometimes it may be desirable to pause a process manually before a search
-    /// is conducted, in which case this function may prove to be useful. Do note
-    /// that this may cause issues with processes that perform network I/O if the
-    /// process isn't resumed for an extended period of time.
-
-    pub fn pause_process(&mut self) -> nix::Result<()> {
-        self.process_paused = true;
-        kill(Pid::from_raw(self.pid), SIGSTOP)
+    /// A convenience function that reads the specified amount of bytes from the target address
+    /// and stores the output in a vector. This is shorthand for:
+    /// 
+    /// ```rust
+    /// let mut out = vec![0; count];
+    /// self.read_address(addr, &mut out);
+    /// out
+    /// ```
+    
+    pub fn read_vec(&mut self, addr: u64, count: usize) -> Result<Vec<u8>, RamInspectError> {
+        let mut out = vec![0; count];
+        self.read_address(addr, &mut out)?;
+        Ok(out)
     }
 
-    /// Resumes a process paused using [RamInspector::pause_process]. This should ideally be called
-    /// soon after the process is paused to reduce the chances of network timeouts and such.
+    /// Writes tbe specified data to the specified memory address of the target process. This has
+    /// the same failure conditions as [RamInspector::read_address].
+    /// 
+    /// For safety reasons the caller must ensure that writing the specified data to the specified memory
+    /// will not negatively affect system stability in any way. This is especially important to consider
+    /// in the case where the user is modifying the memory of a system process.
+    
+    pub unsafe fn write_to_address(&mut self, addr: u64, buf: &[u8]) -> Result<(), RamInspectError> {
+        self.proc_mem_file.seek(SeekFrom::Start(addr)).map_err(|_| RamInspectError::FailedToWriteMem)?;
+        self.proc_mem_file.write_all(buf).map_err(|_| RamInspectError::FailedToWriteMem)?;
+        Ok(())
+    }
 
-    pub fn resume_process(&mut self) -> nix::Result<()> {
-        self.process_paused = false;
-        kill(Pid::from_raw(self.pid), SIGCONT)
+    /// A function used internally to iterate over and process the target processes' memory regions. The first argument
+    /// to the callback is the data contained within the memory region, and the second argument is the starting address
+    /// of the memory region. This is exposed publicly to allow for more complicated, custom analysis of an applications' 
+    /// memory than the built-in search function would allow on its own.
+    /// 
+    /// The reason why this is implemented as a function that takes a closure instead of an iterator is simply because
+    /// I find this interface more elegant, it takes less LOC to implement, and there aren't any cases I can think 
+    /// of where a regular iterator would provide any additional functionality that this wouldn't provide already.
+    
+    pub fn iter_memory_regions<F: FnMut(Vec<u8>, u64)>(&mut self, mut callback: F) -> Result<(), RamInspectError> {
+        let mut memareas = String::new();
+        self.proc_maps_file.read_to_string(&mut memareas).map_err(|_| RamInspectError::FailedToReadProcMaps)?;
+
+        for line in memareas.lines() {
+            let mut chars = line.chars();
+            // The lines read from /proc/PID/maps should conform to the following format:
+            //
+            // HEX_START_ADDR-HEX_END_ADDR rw... etc
+            //
+            // Where rw describes whether or not the described memory region can be read from and
+            // written to. If not the corresponding character will be dashed out. For example read-only 
+            // memory areas would show an r- in the string and write-only ones would show a -w. Read-write
+            // memory areas would contain both characters.
+
+            let start_addr_string = (&mut chars).take_while(char::is_ascii_hexdigit).collect::<String>();
+            let end_addr_string = (&mut chars).take_while(char::is_ascii_hexdigit).collect::<String>();
+
+            // Only consider read / write memory areas
+            if chars.next() == Some('r') && chars.next() == Some('w') {
+                let start_addr = u64::from_str_radix(&start_addr_string, 16).unwrap();
+                let end_addr = u64::from_str_radix(&end_addr_string, 16).unwrap();
+                let mut region = vec![0; (end_addr - start_addr) as usize];
+
+                self.proc_mem_file.seek(SeekFrom::Start(start_addr)).map_err(|_| RamInspectError::FailedToReadMem)?;
+                self.proc_mem_file.read_exact(&mut region).map_err(|_| RamInspectError::FailedToReadMem)?;
+                callback(region, start_addr);
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Searches the target processes' memory for the specified data. This will fail if the process 
+    /// terminated unexpectedly, but should succeed in basically any other case.
+    
+    pub fn search_for_term(&mut self, search_term: &[u8]) -> Result<Vec<u64>, RamInspectError> {
+        if search_term.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut out = Vec::new();
+        self.iter_memory_regions(|region, start_addr| {
+            if region.len() < search_term.len() {
+                return;
+            }
+                
+            for i in 0..region.len() - search_term.len() {
+                let mut found_at_index = true;
+                for j in 0..search_term.len() {
+                    if region[i + j] != search_term[j] {
+                        found_at_index = false;
+                        break;
+                    }
+                }
+
+                if found_at_index {
+                    out.push(start_addr + i as u64);
+                }
+            }
+        })?;
+
+        Ok(out)
     }
 }
 
-impl<'a> Drop for RamInspector<'a> {
+impl Drop for RamInspector {
     fn drop(&mut self) {
-        if self.process_paused {
-            // We don't want a process to freeze if there's a panic or another error
-            // after it was previously paused.
-            let _ = self.resume_process();
-        }
+        // Resume the target process on drop with a SIGCONT. We ignore errors here
+        // since there's no guarantee that the process is still running, so trying
+        // to send a signal to it might fail.
+
+        let _ = kill(Pid::from_raw(self.pid), SIGCONT);
     }
 }

@@ -9,15 +9,15 @@ fn main() {
     use raminspect::RamInspector;
     // Iterate over all running Firefox instances
     for pid in raminspect::find_processes("/usr/lib/firefox/firefox") {
-        let mut inspector = RamInspector::new(pid).unwrap();
-        for proc_addr in inspector.search_for_term(b"Old search text").unwrap().to_vec() {
-            unsafe {
-                // This is safe because modifying the text in the Firefox search bar will not crash
-                // the browser or negatively impact system stability in any way.
-                inspector.queue_write(proc_addr, b"New search text");
+        if let Ok(mut inspector) = RamInspector::new(pid) {
+            for proc_addr in inspector.search_for_term(b"Old search text").unwrap() {
+                unsafe {
+                    // This is safe because modifying the text in the Firefox search bar will not crash
+                    // the browser or negatively impact system stability in any way.
+
+                    inspector.write_to_address(proc_addr, b"New search text").unwrap();
+                }
             }
         }
-
-        inspector.flush().unwrap();
     }
 }
