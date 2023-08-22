@@ -1,6 +1,6 @@
 //! A library used to find and replace arbitrary data in an arbitrary
 //! processes memory on Linux systems. You must run your program as
-//! root in order for this crate to function, and 
+//! root in order for this crate to function.
 
 use std::fs::File;
 use std::fs::OpenOptions;
