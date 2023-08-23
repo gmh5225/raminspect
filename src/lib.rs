@@ -149,12 +149,10 @@ impl RamInspector {
         Ok(out)
     }
 
-    /// Writes tbe specified data to the specified memory address of the target process. This has
-    /// the same failure conditions as [RamInspector::read_address].
-    /// 
-    /// For safety reasons the caller must ensure that writing the specified data to the specified memory
-    /// will not negatively affect system stability in any way. This is especially important to consider
-    /// in the case where the user is modifying the memory of a system process.
+    /// Writes the specified data to the specified memory address of the target process. This has
+    /// the same failure conditions as [RamInspector::read_address]. This is unsafe since directly
+    /// writing to an arbitrary address in an arbitrary processes' memory is not memory safe at 
+    /// all; it is assumed that the caller knows what they're doing.
     
     pub unsafe fn write_to_address(&mut self, addr: u64, buf: &[u8]) -> Result<(), RamInspectError> {
         self.proc_mem_file.seek(SeekFrom::Start(addr)).map_err(|_| RamInspectError::FailedToWriteMem)?;
@@ -166,10 +164,10 @@ impl RamInspector {
     /// to the callback is the data contained within the memory region, and the second argument is the starting address
     /// of the memory region. This is exposed publicly to allow for more complicated, custom analysis of an applications' 
     /// memory than the built-in search function would allow on its own.
-    /// 
-    /// The reason why this is implemented as a function that takes a closure instead of an iterator is simply because
-    /// I find this interface more elegant, it takes less LOC to implement, and there aren't any cases I can think 
-    /// of where a regular iterator would provide any additional functionality that this wouldn't provide already.
+    
+    // The reason why this is implemented as a function that takes a closure instead of an iterator is simply because
+    // I find this interface more elegant, it takes less LOC to implement, and there aren't any cases I can think 
+    // of where a regular iterator would provide any additional functionality that this wouldn't provide already.
     
     pub fn iter_memory_regions<F: FnMut(Vec<u8>, u64)>(&mut self, mut callback: F) -> Result<(), RamInspectError> {
         let mut memareas = String::new();
