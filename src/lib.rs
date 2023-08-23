@@ -167,7 +167,7 @@ impl RamInspector {
     
     // The reason why this is implemented as a function that takes a closure instead of an iterator is simply because
     // I find this interface more elegant, it takes less LOC to implement, and there aren't any cases I can think 
-    // of where a regular iterator would provide any additional functionality that this wouldn't provide already.
+    // of where a regular iterator would provide additional functionality that this wouldn't provide already.
     
     pub fn iter_memory_regions<F: FnMut(Vec<u8>, u64)>(&mut self, mut callback: F) -> Result<(), RamInspectError> {
         let mut memareas = String::new();
