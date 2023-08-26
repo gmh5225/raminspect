@@ -171,6 +171,7 @@ impl RamInspector {
     
     pub fn iter_memory_regions<F: FnMut(Vec<u8>, u64)>(&mut self, mut callback: F) -> Result<(), RamInspectError> {
         let mut memareas = String::new();
+        self.proc_maps_file.seek(SeekFrom::Start(0)).map_err(|_| RamInspectError::FailedToReadProcMaps)?;
         self.proc_maps_file.read_to_string(&mut memareas).map_err(|_| RamInspectError::FailedToReadProcMaps)?;
 
         for line in memareas.lines() {
