@@ -3,7 +3,7 @@ name = "raminspect"
 version = "0.3.0"
 edition = "2021"
 
-license = "GPL-3.0"
+license = "AGPL-3.0"
 readme = "README.md"
 repository = "https://github.com/PhilosophicalProgrammer/raminspect"
 description = "Allows for the reading and writing of an arbitrary processes' memory on Linux systems."
