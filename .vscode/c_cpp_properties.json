@@ -1,0 +1,34 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/kern_module/src",
+                "/lib/modules/6.5.2-arch1-1/build/include",
+                "/lib/modules/6.5.2-arch1-1/build/include/uapi",
+                "/lib/modules/6.5.2-arch1-1/build/include/generated",
+                "/lib/modules/6.5.2-arch1-1/build/arch/x86/include",
+                "/lib/modules/6.5.2-arch1-1/build/arch/x86/include/uapi",
+                "/lib/modules/6.5.2-arch1-1/build/arch/x86/include/generated"
+            ],
+            "defines": [
+                "__KERNEL__"
+            ],
+            "intelliSenseMode": "gcc-x64",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/kern_module",
+                    "/lib/modules/6.5.2-arch1-1/build/include",
+                    "/lib/modules/6.5.2-arch1-1/build/mm",
+                    "/lib/modules/6.5.2-arch1-1/build/fs",
+                    "/lib/modules/6.5.2-arch1-1/build/kernel"
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
+            },
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c89"
+        }
+    ],
+    "version": 4
+}

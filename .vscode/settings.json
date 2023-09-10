@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "*.fy": "plaintext",
+        "*.frs": "rust",
+        "module.h": "c",
+        "fops.h": "c",
+        "ioctl.h": "c"
+    }
+}

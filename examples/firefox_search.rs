@@ -15,6 +15,7 @@ fn main() {
                     // This is safe because modifying the text in the Firefox search bar will not crash
                     // the browser or negatively impact system stability in any way.
 
+                    println!("Writing to process virtual address: 0x{:X}", proc_addr);
                     inspector.write_to_address(proc_addr, b"New search text").unwrap();
                 }
             }
