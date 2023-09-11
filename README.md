@@ -1,6 +1,6 @@
 # raminspect
 
-A crate that allows for finding, replacing, and now in v0.3.0, even creating extra arbitrary memory in an arbitrary process on a Linux system, and for the injection of arbitary shellcode running in the processes' context as well. Essentially it's a library that makes low-level hacking a lot easier. All of this requires root privileges, for obvious reasons.
+`raminspect` is a crate that allows for the general inspection and manipulation of the state of the memory and code of a process on a Linux system. It provides functions for finding and replacing search terms in the processes' memory space, as well as an interface that allows for the injection of arbitrary shellcode running in the processes' context. All of this requires root privileges, for obvious reasons.
 
 ## Demonstration of Functionality
 
@@ -10,7 +10,7 @@ A crate that allows for finding, replacing, and now in v0.3.0, even creating ext
 
 You should be able to run the `firefox_search` example if you have Firefox installed. To do so, start by opening an instance of Firefox and typing "Old search text" in the search bar. If all goes well, when you run the example as root using the command `sudo cargo run --example firefox_search --release`, it should be replaced with "New search text", although you will probably have to click on the search bar again in order for it to render the new text.
 
-## A Note about Memory Allocation and Shell Injection
+## A Note about Memory Allocation and Shellcode Injection
 
 The find and replace functionality is available with or without the kernel module, but if you want to inject shellcode or allocate new buffers you must build and load the prerequisite kernel module first. You can do this by installing your distros' kernel headers package, performing a `git clone` and then running the following commands in the `kern_module` subfolder of the repository (if the build fails for some reason please file an issue):
 
@@ -19,7 +19,7 @@ make all
 sudo insmod raminspect.ko
 ```
 
-Also note that the shell injection part is currently designed to work on any architecture (even though the actual shell code itself has to be platform-specific), but the arbitrary memory allocation is currently limited to x86-64. PRs to add support for arbitrary allocation on more CPU architectures are welcome. t 
+Also note that the shellcode injection part is currently designed to work on any architecture (even though the actual shellcode itself has to be platform-specific), but the arbitrary memory allocation part is currently limited to x86-64. PRs to add support for arbitrary allocation on more CPU architectures are welcome.
 
 ## A Note about Stability
 
