@@ -1,6 +1,6 @@
 # raminspect
 
-`raminspect` is a crate that allows for the general inspection and manipulation of the state of the memory and code of a process on a Linux system. It provides functions for finding and replacing search terms in the processes' memory space, as well as an interface that allows for the injection of arbitrary shellcode running in the processes' context. All of this requires root privileges, for obvious reasons.
+`raminspect` is a crate that allows for the inspection and manipulation of the memory and code of a running process on a Linux system. It provides functions for finding and replacing search terms in a processes' memory, functions for allocating new memory belonging to the process, and an interface that allows for the injection of arbitrary shellcode running in the processes' context. All of this requires root privileges, for obvious reasons.
 
 ## Demonstration of Functionality
 
@@ -23,4 +23,4 @@ Also note that the shellcode injection part is currently designed to work on any
 
 ## A Note about Stability
 
-This project is not yet in a stable state; expect breaking changes and bugs. If you find a bug in the crate or any of the examples don't work on your machine please don't hesitate to file an issue so it can be fixed as soon as possible.
+This project is not yet in a stable state; expect breaking changes and bugs. If you find a bug in the crate or if any of the examples don't work on your machine, please create an issue in the repository so it can be fixed promptly.

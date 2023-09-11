@@ -1,6 +1,7 @@
-//! A library used to find and replace arbitrary data in an arbitrary
-//! processes memory on Linux systems. You must run your program as
-//! root in order for this crate to function.
+//! raminspect is a crate that allows for the inspection and manipulation of the memory and code of 
+//! a running process on a Linux system. It provides functions for finding and replacing search terms 
+//! in a processes' memory, as well as an interface that allows for the injection of arbitrary shellcode 
+//! running in the processes' context. All of this requires root privileges, for obvious reasons.
 
 // Starting from v0.3.0, we use libc and alloc instead of std and nix to support 
 // architectures like 32-bit RISCV which don't have standard library support. This 
@@ -130,7 +131,7 @@ pub fn find_processes(name_contains: &str) -> Vec<i32> {
 }
 
 /// This is the primary interface used by the crate to search through, read, and modify an
-/// arbitrary processes' memory. 
+/// arbitrary processes' memory and code.
 /// 
 /// Note that when an inspector is created for a process, the process will be paused until
 /// the inspector is dropped, in order to ensure that we have exclusive access to the
@@ -252,7 +253,7 @@ impl RamInspector {
     /// you want to retrieve information from the shellcode after it's done executing.
     /// 
     /// Note that this restores the previous register state automatically, so you don't have to 
-    /// save and restore registers in your code manually if you're writing it in assembly.
+    /// save and restore registers in your shellcode manually if you're writing it in assembly.
     
     pub unsafe fn execute_shellcode<F: FnMut(&mut RamInspector, u64) -> Result<(), RamInspectError>>(
         &mut self,
