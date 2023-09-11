@@ -1,6 +1,6 @@
 # raminspect
 
-A crate that allows for finding, replacing, and now in v0.3.0, even creating extra arbitrary memory in an arbitrary process on a Linux system. It also allows for the injection of arbitrary shellcode running in the processes' context. Essentially it's a library designed to make low-level hacking of a process easier. All of this requires root privileges, for obvious reasons.
+A crate that allows for finding, replacing, and now in v0.3.0, even creating extra arbitrary memory in an arbitrary process on a Linux system. It also provides functions for the injection of arbitrary shellcode running in the processes' context. Essentially it's a library designed to make low-level hacking of a process easier. All of this requires root privileges, for obvious reasons.
 
 ## Demonstration of Functionality
 
