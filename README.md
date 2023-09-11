@@ -19,7 +19,7 @@ make all
 sudo insmod raminspect.ko
 ```
 
-Also note that the shell injection part is currently designed to work on any architecture (even though the actual shell code itself has to be platform-specific), but the arbitrary memory allocation is currently limited to x86-64. PRs to add support for arbitrary allocation on more CPU architectures are welcome.
+Also note that the shellcode injection part is currently designed to work on any architecture (even though the actual shellcode itself has to be platform-specific), but the arbitrary memory allocation part is currently limited to x86-64. PRs to add support for arbitrary allocation on more CPU architectures are welcome.
 
 ## A Note about Stability
 
