@@ -1,6 +1,6 @@
 # raminspect
 
-A crate that allows for finding, replacing, and now in v0.3.0, even creating extra arbitrary memory in an arbitrary process on a Linux system, and for the injection of arbitary shellcode running in the processes' context as well. Essentially it's a library that makes low-level hacking a lot easier. All of this requires root privileges, for obvious reasons.
+A crate that allows for finding, replacing, and now in v0.3.0, even creating extra arbitrary memory in an arbitrary process on a Linux system. It also allows for the injection of arbitrary shellcode running in the processes' context. Essentially it's a library designed to make low-level hacking of a process easier. All of this requires root privileges, for obvious reasons.
 
 ## Demonstration of Functionality
 
@@ -19,7 +19,7 @@ make all
 sudo insmod raminspect.ko
 ```
 
-Also note that the shell injection part is currently designed to work on any architecture (even though the actual shell code itself has to be platform-specific), but the arbitrary memory allocation is currently limited to x86-64. PRs to add support for arbitrary allocation on more CPU architectures are welcome. t 
+Also note that the shell injection part is currently designed to work on any architecture (even though the actual shell code itself has to be platform-specific), but the arbitrary memory allocation is currently limited to x86-64. PRs to add support for arbitrary allocation on more CPU architectures are welcome.
 
 ## A Note about Stability
 
